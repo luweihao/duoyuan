@@ -1,0 +1,128 @@
+---
+title: "假设性检验"
+output: html_document
+---
+
+Reference: 应用多元统计分析 高惠璇 Charter 3  
+Detailed data attached at the end
+
+```{r echo=FALSE}
+source("Normial Test.r")
+female.data=read.csv("female.csv")
+japan=read.csv("Economy_Japan.csv")
+usa=read.csv("Economy_USA.csv")
+health=read.csv("health.csv")
+```
+
+## 单总体均值检验
+
+```{r}
+mu0=c(4, 50, 10)
+Sigma0=var(female.data)
+## var known 
+result1=mu.test.known(female.data, mu0, Sigma0, alpha=0.05)
+result1
+## var unknown 
+result2=mu.test(female.data, mu0)
+result2
+```
+
+## 两总体等方差均值检验
+
+```{r}
+result3=two.mu.test(japan, usa)
+result3
+```
+
+## 多总体等方差均值检验 -- 多元方差分析
+
+```{r}
+result4=multi.mu.test(health, 3)  ##3 groups 
+result4
+```
+
+## 单总体正态分布方差检验
+
+```{r}
+Sigma0=matrix(c(100,10,0,6,100,-5,0,0,4),nrow=3)
+result5=var.test(female.data, Sigma0)
+result5
+```
+
+## 多总体正态分布方差检验
+
+```{r}
+result6=multi.var.test(health, 3) 
+result6
+```
+
+## 多总体正态分布均值方差同时检验
+
+```{r}
+result7=multi.mean.var.test(health, k=3)
+result7
+```
+
+## 多元正态独立性检验
+
+```{r echo=FALSE}
+library(MASS)
+set.seed(086)
+
+times=1000
+n=200
+mu=c(1, 0)
+Sigma <- matrix(c(0.5,0,0,0.5), nrow = 2, byrow = TRUE)
+```
+
+Simulation: Run the function for `r times` times, each time generating `r n` 
+data which have NID(`r mu`; `r Sigma`), and proceeding independence test.
+Record t-value and p-value each time. If p-value is significant, rejects 
+the null hypothesis, i.e. the test fails. The average of the number of failures 
+is calculated to evaluate the test performance.
+
+```{r echo=FALSE}
+p=rep(0,times)
+t=rep(0,times)
+pi=rep(0,times)
+```
+
+```{r}
+for(i in 1:times)
+{
+  mydata <- as.data.frame(mvrnorm(n, mu, Sigma))
+  subvector <- c(1,2)
+  k=2 # divided into k sub-vector to test independence
+  re=norm.independent.test(mydata, subvector, k)
+  # If p-value is significant, rejects the null hypothesis, 
+  # i.e. the test fails.
+  t[i]=re$t
+  pi[i]=re$p.value
+  if(re$p.value<0.05)
+  {
+    p[i]=1
+  }
+}
+sum(p) ## total fail times
+t[18]  ## t-value of the 18th result
+pi[18] ## p-value of the 18th result
+```
+
+Example:
+
+```{r}
+subvector <- c(1,2,3)
+k=3
+result8=norm.independent.test(female.data, subvector, k)
+result8
+```
+
+## Appendix: datasets
+
+```{r echo=FALSE}
+library(knitr)
+kable(female.data, caption="female.data")
+kable(japan, caption="japan")
+kable(usa, caption="usa")
+kable(health, caption="health")
+```

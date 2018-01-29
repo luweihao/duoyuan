@@ -1,0 +1,102 @@
+---
+title: "Principal Component Analysis"
+output: html_document
+---
+
+Detailed data attached at the end
+
+```{r echo=FALSE}
+student=read.csv("student.csv")
+fertilization=read.csv("fertilization.csv")
+fertilization=fertilization[,-1]
+fertilization1=scale(fertilization[,-4])
+```
+
+```{r}
+## principal components analysis
+student.pr=princomp(~X1+X2+X3+X4, data=student, cor=TRUE) 
+## summary
+summary(student.pr, loadings=TRUE)
+##  scores
+predict(student.pr)
+##  screepplot
+screeplot(student.pr,type="lines")
+biplot(student.pr)
+```
+
+## Principal component regression analysis using [psych](https://cran.r-project.org/web/packages/psych/) package: A brief example
+For more details of Parallel Analysis, see [Factor Retention Decisions in Exploratory Factor Analysis: A Tutorial on Parallel Analysis](https://www.researchgate.net/publication/235726204_Factor_Retention_Decisions_in_Exploratory_Factor_Analysis_A_Tutorial_on_Parallel_Analysis)
+
+### Linear model: vif值很大, 说明存在**严重多重共线性**
+
+```{r}
+lmo.sol=lm(y~., data=fertilization)
+summary(lmo.sol)
+library(car)
+vif(lmo.sol)
+```
+
+### Principal components analysis
+判断主成分个数的方法：  
+
+- 先验经验和理论知识  
+- 事先确定的累计贡献率阈值  
+- 根据Kaiser-Harris准则: 保留特征值大于1的主成分  
+- 进行平行分析: 基于多次模拟数据矩阵的特征值均值来选取主成分  
+
+```{r message=FALSE, warning=FALSE}
+library(psych)
+```
+```{r}
+fa.parallel(fertilization1, fa = "pc", n.iter = 100, 
+            show.legend = FALSE, main = "Scree plot with parallel analysis")
+```
+
+按照parallel analysis的结果, 选取一个主成分, 并作出主成分与原变量的关系图
+
+```{r}
+fertilization.pr=principal(fertilization1, nfactors=1, rotate="none")
+fertilization.pr
+fa.diagram(fertilization.pr)
+```
+
+建立主成分回归模型并计算原方程系数
+
+```{r echo=FALSE}
+fertilization.pr1=princomp(~., data=fertilization[,-4], cor=T)
+
+#### principal components regression ##############
+pre=predict(fertilization.pr1)
+fertilization$F1=pre[,1]
+```
+```{r}
+lm.sol=lm(y~F1, data=fertilization)
+summary(lm.sol)
+```
+```{r echo=FALSE}
+#### transformation ###############################
+beta=coef(lm.sol)
+A=loadings(fertilization.pr1)
+x.bar=fertilization.pr1$center
+x.sd=fertilization.pr1$scale
+if(length(beta)==2){
+  coef=(beta[2]*A[,1])/x.sd
+}
+if(length(beta)>=3){
+  coef=beta[2]*A[,1]
+  for(i in 2:(length(beta)-1)){
+    coef=coef + beta[i+1]*A[,i]
+  }
+  coef=coef/x.sd
+}
+beta0=beta[1]-sum(x.bar*coef)
+c(beta0, coef)
+```
+
+## Appendix: datasets
+
+```{r echo=FALSE}
+library(knitr)
+kable(student, caption="student")
+kable(fertilization, caption="fertilization")
+```

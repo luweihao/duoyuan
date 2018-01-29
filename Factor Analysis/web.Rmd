@@ -1,0 +1,62 @@
+---
+title: "Factor Analysis"
+output: html_document
+---
+
+Detailed data attached at the end
+
+```{r echo=FALSE}
+applicant=read.csv("applicant.csv")
+mydata=applicant[,-1]
+```
+
+## Factor analysis using [psych](https://cran.r-project.org/web/packages/psych/) package: A brief example
+For more details of Parallel Analysis, see [Factor Retention Decisions in Exploratory Factor Analysis: A Tutorial on Parallel Analysis](https://www.researchgate.net/publication/235726204_Factor_Retention_Decisions_in_Exploratory_Factor_Analysis_A_Tutorial_on_Parallel_Analysis)
+
+判断公共因子个数的方法：  
+
+- 先验经验和理论知识  
+- 事先确定的累计贡献率阈值  
+- 根据Kaiser-Harris准则: 保留特征值大于0的因子  
+- 进行平行分析: 基于多次模拟数据矩阵的特征值均值来选取因子  
+
+*当摇摆不定时, 高估因子比低估好, 因为高估因子较少曲解"真实"情况*
+
+```{r warning=FALSE, message=FALSE}
+library(psych)
+fa.parallel(mydata, fa = "fa", n.iter = 100, 
+            show.legend = FALSE, main = "Scree plot with parallel analysis")
+```
+
+按照parallel analysis的结果, 选取四个因子
+
+```{r}
+fa0=factanal(~., factors=4, data=mydata, rotation="none")   ##不旋转因子难以解释
+print(fa0)
+
+fa1=factanal(~., factors=4, data=mydata, scores="Bartlett")  ##默认旋转
+print(fa1)
+```
+
+结果显示因子变得更好解释了:  
+
+- 第一公共因子中, 系数绝对值大的变量主要与求职者外露能力有关  
+- 第二公共因子中, 系数绝对值大的变量主要反映求职者的经验  
+- 第二公共因子主要反映了求职者是否讨人喜欢  
+- 第四公共因子系数绝对值较小, 说明其相对次要一些, 主要反映求职者的专业能力  
+
+```{r}
+apply(fa1$scores,2,which.max)  ## 各因子得分最高者
+apply(fa1$scores,2,which.min)  ## 各因子得分最低者
+
+
+plot(fa1$scores[, 1:2], type="n", main="前两个公共因子得分图")
+text(fa1$scores[,1], fa1$scores[,2])
+```
+
+## Appendix: datasets
+
+```{r echo=FALSE}
+library(knitr)
+kable(applicant, caption="applicant")
+```

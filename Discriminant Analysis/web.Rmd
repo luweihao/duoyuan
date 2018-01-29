@@ -1,0 +1,51 @@
+---
+title: "判别分析--以iris dataset为例"
+output: html_document
+---
+
+```{r echo=FALSE}
+library(MASS)
+source("distinguish.distance.R")
+source("distinguish.bayes.R")
+```
+
+```{r}
+X=iris[,1:4]
+G=gl(3,50)
+```
+
+## Distance method
+
+```{r}
+distinguish.distance(X,G)
+```
+
+## Bayes method
+
+```{r}
+distinguish.bayes(X,G)
+```
+
+## Fisher method
+```{r}
+mydata=cbind(G, X)
+ldist=lda(G~Sepal.Length+Sepal.Width+Petal.Length+Petal.Width, data=mydata)
+print(ldist)
+
+pre.ldist=predict(ldist)
+new.ind=pre.ldist$class
+
+data.ldist=cbind(mydata,new.ind)
+
+group=data.ldist$G
+new.ind=data.ldist$new.ind
+tab1=table(group, new.ind)
+print(tab1)
+tab2=prop.table(tab1)
+print(tab2, digits = 3)
+```
+
+```{r echo=FALSE}
+wrong <- which((as.numeric(G)-as.numeric(new.ind))!=0)
+cat("The index of wrong data are:", wrong, "\n")
+```
